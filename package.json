@@ -5,7 +5,10 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "babel-watch src/main.js"
+    "start": "npx babel-watch src/main.js",
+    "compile": "rm -rf build && npx babel src/ -d build/ --quiet",
+    "start:compile": "npm run compile && node build/main.js",
+    "start:compiled": "node build/main.js"
   },
   "author": "",
   "license": "ISC",
@@ -17,6 +20,7 @@
     "nano": "^8.2.2"
   },
   "devDependencies": {
-    "babel-watch": "^7.0.0"
+    "babel-watch": "^7.0.0",
+    "@babel/cli": "^7.8.4"
   }
 }
