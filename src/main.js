@@ -1,4 +1,5 @@
 import _nano from "nano";
+import fs from 'fs';
 
 const exampleJson = {
     "glossary": {
@@ -23,21 +24,25 @@ const exampleJson = {
     }
 };
 
+let log = (msg) => {
+    console.log(msg);
+};
+
 const _try = async (func, msg) => {
     try {
         await func();
     } catch (e) {
-        msg && console.log(msg);
+        msg && log(msg);
     }
 };
 
 const measure = async (func, startMsg, endMsg) => {
-    startMsg && console.log(startMsg);
+    startMsg && log(startMsg);
     const start = new Date();
     await func();
     const end = new Date();
     const diff = end - start;
-    console.log(endMsg + ` Took ${diff/1000}s`);
+    log(endMsg + ` Took ${diff / 1000}s`);
     return diff;
 };
 
@@ -48,73 +53,60 @@ const insertX = async (db, num, prefix = '') => {
 };
 
 const runBenchmark = async (docs, dbs) => {
-    const number = docs * dbs;
-    console.log("----------------------------------------");
-    console.log(`Running benchmark with ${docs} docs und ${dbs} dbs`);
+    log("----------------------------------------");
+    log(`Running benchmark with ${docs} docs und ${dbs} dbs`);
+
     const nano1 = _nano('http://localhost:5984');
-    const nano2 = _nano('http://localhost:5985');
-
-    await _try(() => nano1.db.destroy('alice'), 'Alice (db1) not destroyed');
-    await _try(() => nano2.db.destroy('alice'), 'Alice (db2) not destroyed');
-
-    await nano1.db.create('alice');
-    const alice = nano1.db.use('alice');
-
-    // INSERT
-    const singleInsert = await measure(async () => {
-        await insertX(alice, number);
-    }, `Insert ${number} elements`, 'Insert finished.');
-
-    // REPLICATE
-    const singleReplicate = await measure(async () => {
-        await alice.replicate(`http://db2:5984/${alice.config.db}`, {create_target: true});
-    }, 'Start replication.', 'End Replication.');
 
     const _dbs = [];
 
     for (let d = 0; d < dbs; d++) {
-        await _try(() => nano1.db.destroy(`db${d}`), 'db${d} (db1) not destroyed');
+        await _try(() => nano1.db.destroy(`db${d}`), `db${d} (db1) not destroyed`);
         await nano1.db.create(`db${d}`);
         _dbs.push(nano1.db.use(`db${d}`));
     }
 
     // Insert
-    const multiInsert = await measure(async () => {
+    const insert = await measure(async () => {
         for (let db of _dbs) {
             await insertX(db, docs);
         }
     }, `Insert ${docs} docs into ${dbs} DBs`, 'Finished inserts.');
 
     // Sync
-    const multiSync = await measure(async () => {
+    const sync = await measure(async () => {
         for (let db of _dbs) {
             await db.replicate(`http://db2:5984/${db.config.db}`, {create_target: true});
         }
     }, `Sync ${docs} docs ${dbs} DBs`, 'Sync inserts.');
 
+    // Destroy
+    for (let db of _dbs) {
+        await nano1.db.destroy(db.config.db);
+    }
 
-    console.log(`Finished benchmark with ${docs} docs und ${dbs} dbs`);
-    console.log("-----------------------------------------");
+    log(`Finished benchmark with ${docs} docs und ${dbs} dbs`);
+    log("-----------------------------------------");
     return {
-        singleInsert,
-        singleReplicate,
-        multiInsert,
-        multiSync,
+        insert,
+        sync,
     };
 };
 
 const main = async () => {
-    const results = {};
-    for (let d = 1; d <= 8; d=d*2) {
-        for (let i = 100; i <= 10000; i = i * 10) {
-            const docs = (i/d)|0;
-            const res = await runBenchmark(docs, d);
-            results[`dbs{${d}};docs{${docs}};`] = res;
+    const results = [];
+    for (let d = 1; d <= 8; d = d * 2) {
+        for (let i = 128; i <= 10000; i = i * 2) {
+            const docs = (i / d) | 0;
+            results.push(Object.assign({
+                dbs: d,
+                docs: docs,
+            }, await runBenchmark(docs, d)));
         }
     }
-    console.log(results);
+    fs.writeFileSync('results.json', JSON.stringify(results));
 };
 
 main()
-    .then(() => console.log("FINISH"))
+    .then(() => log("FINISH"))
     .catch(e => console.error(e, e.stack));
