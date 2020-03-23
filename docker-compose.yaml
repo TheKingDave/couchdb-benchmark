@@ -8,6 +8,10 @@ services:
       - ./ser/db1/data:/opt/couchdb/data
       - ./ser/db1/config:/opt/couchdb/etc/local.d/
 
+    environment:
+      - COUCHDB_USER=admin
+      - COUCHDB_PASSWORD=password
+
     ports:
       - 5984:5984
 
@@ -17,6 +21,10 @@ services:
     volumes:
       - ./ser/db2/data:/opt/couchdb/data
       - ./ser/db2/config:/opt/couchdb/etc/local.d/
+
+    environment:
+      - COUCHDB_USER=admin
+      - COUCHDB_PASSWORD=password
 
     ports:
       - 5985:5984

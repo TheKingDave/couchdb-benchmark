@@ -56,7 +56,7 @@ const runBenchmark = async (docs, dbs) => {
     log("----------------------------------------");
     log(`Running benchmark with ${docs} docs und ${dbs} dbs`);
 
-    const nano1 = _nano('http://localhost:5984');
+    const nano1 = _nano('http://admin:password@localhost:5984');
 
     const _dbs = [];
 
@@ -76,7 +76,7 @@ const runBenchmark = async (docs, dbs) => {
     // Sync
     const sync = await measure(async () => {
         for (let db of _dbs) {
-            await db.replicate(`http://db2:5984/${db.config.db}`, {create_target: true});
+            await db.replicate(`http://admin:password@db2:5984/${db.config.db}`, {create_target: true});
         }
     }, `Sync ${docs} docs ${dbs} DBs`, 'Sync inserts.');
 
