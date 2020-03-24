@@ -52,6 +52,14 @@ const insertX = async (db, num, prefix = '') => {
     }
 };
 
+const bulkInsertX = async (db, num, prefix = '') => {
+    const docs = [];
+    for(let i = 0; i < num; i++) {
+        docs.push({_id: prefix + i});
+    }
+    await db.bulk({docs});
+};
+
 const runBenchmark = async (docs, dbs) => {
     log("----------------------------------------");
     log(`Running benchmark with ${docs} docs und ${dbs} dbs`);
@@ -69,7 +77,7 @@ const runBenchmark = async (docs, dbs) => {
     // Insert
     const insert = await measure(async () => {
         for (let db of _dbs) {
-            await insertX(db, docs);
+            await bulkInsertX(db, docs);
         }
     }, `Insert ${docs} docs into ${dbs} DBs`, 'Finished inserts.');
 
