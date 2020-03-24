@@ -102,16 +102,37 @@ const runBenchmark = async (docs, dbs) => {
 };
 
 const main = async () => {
+    const nTimes = 100;
+
+    const avgResults = [];
     const results = [];
     for (let d = 1; d <= 16; d = d * 2) {
         for (let i = 16; i <= 8192; i = i * 2) {
             const docs = i;
-            results.push(Object.assign({
+
+            let avgInsert = 0;
+            let avgSync = 0;
+            for(let a = 0; a < 100; a++) {
+                const res = await runBenchmark(docs, d);
+                results.push(Object.assign({
+                    dbs: d,
+                    docs: docs,
+                }, res));
+                avgInsert += res.insert;
+                avgSync += res.sync;
+            }
+            avgResults.push({
                 dbs: d,
                 docs: docs,
-            }, await runBenchmark(docs, d)));
+                insert: avgInsert / nTimes,
+                sync: avgInsert / nTimes,
+                fullInsert: avgInsert,
+                fullSync: avgSync,
+            });
+
         }
     }
+    fs.writeFileSync('average.json', JSON.stringify(avgResults));
     fs.writeFileSync('results.json', JSON.stringify(results));
 };
 
