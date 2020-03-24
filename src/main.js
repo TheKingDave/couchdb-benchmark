@@ -95,9 +95,9 @@ const runBenchmark = async (docs, dbs) => {
 
 const main = async () => {
     const results = [];
-    for (let d = 1; d <= 8; d = d * 2) {
-        for (let i = 128; i <= 10000; i = i * 2) {
-            const docs = (i / d) | 0;
+    for (let d = 1; d <= 16; d = d * 2) {
+        for (let i = 16; i <= 8192; i = i * 2) {
+            const docs = i;
             results.push(Object.assign({
                 dbs: d,
                 docs: docs,
